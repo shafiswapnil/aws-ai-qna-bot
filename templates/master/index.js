@@ -149,7 +149,7 @@ module.exports={
     },
     "Email":{
         "Type":"String",
-        "Description":"Email address for the admin user. Will be used for loging in and for setting the admin password. This email will receive the temporary password for the admin user.",
+        "Description":"Required: Email address for the admin user. Will be used for logging in and for setting the admin password. This email will receive the temporary password for the admin user.",
         "AllowedPattern":".+\\@.+\\..+",
         "ConstraintDescription":"Must be valid email address eg. johndoe@example.com"
     },
@@ -157,6 +157,11 @@ module.exports={
         "Type":"String",
         "Description":"Administrator username",
         "Default":"Admin"
+    },
+    "DefaultKendraIndexId":{
+        "Type":"String",
+        "Description":"Optional: Index ID of an existing Kendra index, used as the default index for QnABot's Kendra integration. You can use the QnABot Content Designer to reconfigure Kendra Index ID settings at any time.",
+        "Default":""
     },
     "BootstrapBucket":{
         "Type":"String"
@@ -195,6 +200,11 @@ module.exports={
         "Default":"FALSE",
         "ConstraintDescription":"Allowed Values are FALSE or TRUE"
     },
+    "KibanaDashboardRetentionMinutes":{
+        "Type":"Number",
+        "Description": "To conserve storage in Amazon ElasticSearch, metrics and feedback data used to populate the Kibana dashboard are automatically deleted after this period (default 43200 minutes = 30 days). Monitor 'Free storage space' for your ElasticSearch domain to ensure that you have sufficient space available to store data for the desired retention period.",
+        "Default":43200
+    }
   },
   "Conditions":{
     "Public":{"Fn::Equals":[{"Ref":"PublicOrPrivate"},"PUBLIC"]},

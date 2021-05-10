@@ -3,14 +3,16 @@ var _=require('lodash')
 var fs=require('fs')
 
 var js=fs.readdirSync(`${__dirname}/js_lambda_hooks`)
-.map(name=>{
+.map(name=> {
+  if (fs.existsSync(`${__dirname}/js_lambda_hooks/${name}/${name}.js`)) {
     return {
-        name:`EXT${name}`,
-        resource:jslambda(name),
-        codeVersionName:`CodeVersion${name}`,
-        codeVersionResource:codeVersion(name),
-        id:`${name}JS`,
+      name: `EXT${name}`,
+      resource: jslambda(name),
+      codeVersionName: `CodeVersion${name}`,
+      codeVersionResource: codeVersion(name),
+      id: `${name}JS`,
     }
+  }
 })
 
 var py=fs.readdirSync(`${__dirname}/py_lambda_hooks`)
@@ -55,7 +57,7 @@ module.exports=Object.assign(
         "Handler": "ui_import.handler",
         "MemorySize": "128",
         "Role":{"Ref":"CFNLambdaRole"} ,
-        "Runtime": "nodejs10.x",
+        "Runtime": "nodejs12.x",
         "Timeout": 300,
         "VpcConfig" : {
             "Fn::If": [ "VPCEnabled", {
@@ -169,31 +171,12 @@ module.exports=Object.assign(
               }
             ]
           }          
-        },
-        { 
-          "PolicyName" : "S3QNABucketReadAccess",
-          "PolicyDocument" : {
-          "Version": "2012-10-17",
-            "Statement": [
-              {
-                  "Effect": "Allow",
-                  "Action": [
-                      "s3:GetObject"
-                   ],   
-                  "Resource": [
-                      "arn:aws:s3:::QNA*/*",
-                      "arn:aws:s3:::qna*/*"
-                  ]
-              }
-            ]
-          }
         }],
         "ManagedPolicyArns": [
             "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
-            "arn:aws:iam::aws:policy/TranslateReadOnly",
             "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole",
-            "arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess",
-            "arn:aws:iam::aws:policy/AmazonKendraReadOnlyAccess"]
+            "arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"
+        ]
       }
     }
 });
@@ -222,7 +205,7 @@ function jslambda(name){
       "Handler":`${name}.handler`,
       "MemorySize": "2048",
       "Role": {"Fn::GetAtt": ["ExtensionLambdaRole","Arn"]},
-      "Runtime": "nodejs10.x",
+      "Runtime": "nodejs12.x",
       "Timeout": 300,
       "VpcConfig" : {
           "Fn::If": [ "VPCEnabled", {

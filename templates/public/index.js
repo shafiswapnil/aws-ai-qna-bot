@@ -31,15 +31,50 @@ module.exports=Promise.resolve(require('../master')).then(function(base){
         "DefaultSettingsSSMParameterName",
         "CustomSettingsSSMParameterName"
     ])
-
     base.Parameters=_.pick(base.Parameters,[
         "Email",
         "Username",
+        "DefaultKendraIndexId",
         "Encryption",
         "ElasticSearchNodeCount",
+        "KibanaDashboardRetentionMinutes",
         "PublicOrPrivate",
         "XraySetting"
-    ])
+    ]);
+    base.Metadata = {
+        "AWS::CloudFormation::Interface": {
+            "ParameterGroups": [
+                {
+                   "Label": {
+                        "default": "Authentication"
+                   },
+                   "Parameters": [
+                        "Email",
+                        "Username",
+                        "PublicOrPrivate"
+                   ]
+                },
+                {
+                   "Label": {
+                        "default": "Amazon Kendra Integration"
+                   },
+                   "Parameters": [
+                        "DefaultKendraIndexId"
+                   ]
+                },
+                {
+                   "Label": {
+                        "default": "Amazon ElasticSearch"
+                   },
+                   "Parameters": [
+                        "ElasticSearchNodeCount",
+                        "Encryption",
+                        "KibanaDashboardRetentionMinutes"
+                   ]
+                }
+            ]
+        }
+    };
     base.Conditions.Public={"Fn::Equals":[{"Ref":"PublicOrPrivate"},"PUBLIC"]}
     base.Conditions.Encrypted={"Fn::Equals":[{"Ref":"Encryption"},"ENCRYPTED"]}
     base.Conditions.AdminSignUp={"Fn::Equals":[true,true]}
