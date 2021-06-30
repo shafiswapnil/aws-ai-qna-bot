@@ -7,7 +7,7 @@ var build_es_query = require('./esbodybuilder');
 var handlebars = require('./handlebars');
 var translate = require('./translate');
 var kendra = require('./kendraQuery');
-var kendra_fallback = require("./kendra")
+var kendra_fallback = require("./kendra");
 // const sleep = require('util').promisify(setTimeout);
 
 
@@ -238,15 +238,8 @@ async function get_hit(req, res) {
         console.log("request entering kendra fallback " + JSON.stringify(req))
         hit = await  kendra_fallback.handler({req,res})
         console.log("Result from Kendra " + JSON.stringify(hit))
-        if(!(hit &&  hit.hit_count != 0))
+        if(hit &&  hit.hit_count != 0)
         {
-            console.log("No hits from query - searching instead for: " + no_hits_question);
-            query_params['question'] = no_hits_question;
-            res['got_hits'] = 0;  // response flag, used in logging / kibana
-            
-            response = await run_query(req, query_params);
-            hit = _.get(response, "hits.hits[0]._source");
-        }else{
             _.set(res,"answersource","Kendra Fallback");
             _.set(res,"session.qnabot_gotanswer",true) ; 
             _.set(res,"message", hit.a);
@@ -254,12 +247,36 @@ async function get_hit(req, res) {
             res['got_hits'] = 1;
 
         }
+
+    }
+    if(!hit)
+    {
+        console.log("No hits from query - searching instead for: " + no_hits_question);
+        query_params['question'] = no_hits_question;
+        res['got_hits'] = 0;  // response flag, used in logging / kibana
+        
+        response = await run_query(req, query_params);
+        hit = _.get(response, "hits.hits[0]._source");
+
+        console.log("No hits response: " + JSON.stringify(hit))
     }
     // Do we have a hit?
     if (hit) {
-
+        console.log("Setting topic for " + JSON.stringify(hit))
         // set res topic from document before running handlebars, so that handlebars can access or overwrite it.
-        _.set(res, "session.topic", _.get(hit, "t"));
+         _.set(res, "session.topic", _.get(hit, "t"));
+        if(_.get(hit, "t")){
+            if(!res._userInfo){
+                res._userInfo = {}
+            }
+            if(!res._userInfo.recentTopics){
+                res._userInfo.recentTopics = []
+            }
+            res._userInfo.recentTopics.push({
+                topic: _.get(hit, "t"),
+                dateTime: (new Date()).toISOString()
+            })
+        }
         // run handlebars template processing
         hit = await handlebars(req, res, hit);
 
@@ -499,7 +516,7 @@ module.exports = async function (req, res) {
     const elicitResponseChainingConfig = _.get(res, "session.qnabotcontext.elicitResponse.chainingConfig", undefined);
     const elicitResponseProgress = _.get(res, "session.qnabotcontext.elicitResponse.progress", undefined);
     let hit = undefined;
-    if (elicitResponseChainingConfig && (elicitResponseProgress === 'Fulfilled' || elicitResponseProgress === 'ReadyForFulfillment' || elicitResponseProgress === 'Failed' )) {
+    if (elicitResponseChainingConfig && (elicitResponseProgress === 'Fulfilled' || elicitResponseProgress === 'ReadyForFulfillment' || elicitResponseProgress === 'Close' || elicitResponseProgress === 'Failed' )) {
         // elicitResponse is finishing up as the LexBot has fulfilled its intent.
         // we use a fakeHit with either the Bot's message or an empty string.
         let fakeHit = {};
@@ -528,7 +545,7 @@ module.exports = async function (req, res) {
         // translate response
         var usrLang = 'en';
         if (_.get(req._settings, 'ENABLE_MULTI_LANGUAGE_SUPPORT')) {
-            usrLang = _.get(req, 'session.userLocale');
+            usrLang = _.get(req, 'session.qnabotcontext.userLocale');
             if (usrLang != 'en') {
                 console.log("Autotranslate hit to usrLang: ", usrLang);
                 hit = await translate.translate_hit(hit, usrLang,req);
